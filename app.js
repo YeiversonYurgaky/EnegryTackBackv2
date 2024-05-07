@@ -30,7 +30,7 @@ app.get("/status", (req, res) => {
 });
 
 //Conexion a base de datos
-let MONGODB_URI = `mongodb://${process.env.DB_HOST}/${process.env.MONGO_DB}?retryWrites=true`;
+const MONGODB_URI = `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_HOST}/${process.env.MONGO_DB}?retryWrites=true&authSource=admin`;
 
 //useUnifiedTopology: true, useNewUrlParser: true, DEPRECADO
 mongoose
