@@ -21,10 +21,9 @@ module.exports.createConsumo = async (consumo) => {
   });
 };
 
-module.exports.obtenerDatosDiarios = async (consumo) => {
+module.exports.obtenerDatosDiarios = async (fecha) => {
   return new Promise((resolve, reject) => {
-    consumo
-      .save()
+    ConsumoModel.find({ fecha })
       .then((resp) => {
         Response.status = 201;
         Response.message = "Datos obtenidos correctamente en la base de datos";
