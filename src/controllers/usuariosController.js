@@ -1,9 +1,9 @@
-const UserModel = require("../models/UsuariosModels");
+const UserModel = require("../models/usuariosModel");
 const {
   CreateUser,
   FindOneUsername,
   updateUser,
-} = require("../repository/UserRepository");
+} = require("../repository/usuariosRepository");
 const bcrypt = require("bcrypt");
 const jwt = require("../utils/jwt");
 // Registrar/Crear usuarios
@@ -19,54 +19,74 @@ async function create(req, res) {
     !params.password ||
     !params.email
   ) {
-    res.status(404).send({ message: "Todos los campos son requeridos" });
+    res.status(400).send({ message: "Todos los campos son requeridos" });
     return;
   }
 
-  //Encriptar password
-  bcrypt.hash(params.password, null, null, async function (err, hash) {
-    if (hash) {
-      user.nombres = params.nombres;
-      user.apellidos = params.apellidos;
-      user.email = params.email;
-      user.usuario = params.usuario;
-      user.password = hash;
+  try {
+    // Encriptar la contraseña
+    const hashedPassword = await bcrypt.hash(params.password, 10);
 
-      const response = await CreateUser(user);
-      res.status(response.status).send(response);
-    }
-  });
+    // Asignar los valores al usuario
+    user.nombres = params.nombres;
+    user.apellidos = params.apellidos;
+    user.email = params.email;
+    user.usuario = params.usuario;
+    user.password = hashedPassword;
+
+    // Crear el usuario en la base de datos
+    const response = await CreateUser(user);
+    res.status(response.status).send(response);
+  } catch (error) {
+    console.error("Error al crear usuario:", error);
+    res.status(500).send({ message: "Error interno del servidor" });
+  }
 }
 
 async function login(req, res) {
   const params = req.body;
 
   if (!params.usuario || !params.password) {
-    res
-      .status(404)
+    return res
+      .status(400)
       .send({ message: "Por favor, proporcione un usuario y una contraseña." });
-    return;
   }
 
-  const user = await FindOneUsername(params.usuario);
-  if (user) {
-    //Logueo
-    bcrypt.compare(
-      params.password,
-      user.result.password,
-      function (err, check) {
-        if (check) {
-          res.status(200).send({
-            message: "el usuario se encuentra logueado",
-            token: jwt.createToken(user.result),
-          });
-        } else {
-          res.status(404).send({ message: "Usuario o contraseña Invalida" });
+  try {
+    const user = await FindOneUsername(params.usuario);
+
+    if (user) {
+      bcrypt.compare(
+        params.password,
+        user.result.password,
+        function (err, check) {
+          if (err) {
+            console.error("Error al comparar contraseñas:", err);
+            return res
+              .status(500)
+              .send({ message: "Error interno del servidor" });
+          }
+
+          if (check) {
+            // Si la contraseña es correcta, crea un token JWT y lo envía en la respuesta
+            const token = jwt.createToken(user);
+            return res.status(200).send({
+              message: "El usuario se encuentra logueado",
+              token: token,
+            });
+          } else {
+            return res
+              .status(401)
+              .send({ message: "Usuario o contraseña inválida" });
+          }
         }
-      }
-    );
-  } else {
-    res.status(404).send({ message: "Usuario o contraseña Invalida" });
+      );
+    } else {
+      return res.status(401).send({ message: "Usuario o contraseña inválida" });
+    }
+  } catch (error) {
+    console.error("Error al buscar usuario:", error);
+    return res.status(500).send({ message: "Error interno del servidor" });
   }
 }
 

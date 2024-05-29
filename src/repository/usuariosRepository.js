@@ -1,5 +1,5 @@
 const { Response } = require("../utils/response");
-const UserModel = require("../models/UsuariosModels");
+const UserModel = require("../models/usuariosModel");
 
 module.exports.CreateUser = async (user) => {
   return new Promise((resolve, reject) => {
